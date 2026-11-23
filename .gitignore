@@ -1,0 +1,3 @@
+.venv/
+devices.conf
+__pycache__/
