@@ -12,6 +12,7 @@ lights come back on.
 ## Use
 - `./lights.sh off`: lights off
 - `./lights.sh on`: lights on
+- `./tray.py`: run the system tray indicator in your taskbar
 - Check the watcher: `journalctl -u wake-watch -n 20`
 
 ## Uninstall

@@ -21,6 +21,7 @@ sudo systemctl reset-failed wake-watch.service 2>/dev/null || true
 
 # 3. Remove everything the install created or downloaded
 rm -rf .venv __pycache__ devices.conf
+rm -f "$HOME/.config/autostart/rgb-sleep-tray.desktop"
 echo "Service, venv and local config removed."
 
 # 4. Optionally delete the project folder itself (including .git)
