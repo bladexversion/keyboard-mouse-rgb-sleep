@@ -23,4 +23,11 @@ sudo systemctl restart wake-watch.service
 
 mkdir -p "$HOME/.config/autostart"
 cp "$DIR/rgb-sleep-tray.desktop" "$HOME/.config/autostart/rgb-sleep-tray.desktop" 2>/dev/null || true
+
+# Start or restart tray icon in background
+pkill -f "$DIR/tray.py" 2>/dev/null || true
+if [ -n "$DISPLAY" ]; then
+  nohup python3 "$DIR/tray.py" >/dev/null 2>&1 &
+fi
+
 echo "installed. try: $DIR/lights.sh off"

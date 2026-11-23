@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""System tray indicator for rgb-sleep in XFCE and other desktop environments."""
+"""System tray indicator for rgb-sleep."""
 import os
 import signal
 import subprocess
@@ -7,8 +7,19 @@ import sys
 
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version("AyatanaAppIndicator3", "0.1")
-from gi.repository import AyatanaAppIndicator3, GLib, Gtk
+from gi.repository import GLib, Gtk
+
+USE_XAPP = False
+try:
+    gi.require_version("XApp", "1.0")
+    from gi.repository import XApp
+    USE_XAPP = True
+except (ValueError, ImportError):
+    try:
+        gi.require_version("AyatanaAppIndicator3", "0.1")
+        from gi.repository import AyatanaAppIndicator3
+    except (ValueError, ImportError):
+        sys.exit("Neither XApp nor AyatanaAppIndicator3 is available.")
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 LIGHTS = os.path.join(DIR, "lights.sh")
@@ -37,7 +48,6 @@ def run_command_privileged(cmd):
         if os.geteuid() == 0:
             full_cmd = cmd
         else:
-            # Check if passwordless sudo is available
             test_sudo = subprocess.run(["sudo", "-n", "true"], capture_output=True)
             if test_sudo.returncode == 0:
                 full_cmd = ["sudo"] + cmd
@@ -50,14 +60,6 @@ def run_command_privileged(cmd):
 
 class RgbSleepTray:
     def __init__(self):
-        self.indicator = AyatanaAppIndicator3.Indicator.new(
-            "rgb-sleep-indicator",
-            ICON_ACTIVE,
-            AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS,
-        )
-        self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
-        self.indicator.set_title("RGB Sleep")
-
         self.menu = Gtk.Menu()
 
         # Status Header (non-clickable indicator)
@@ -80,32 +82,53 @@ class RgbSleepTray:
         self.menu.append(Gtk.SeparatorMenuItem())
 
         # Action: Toggle Watcher Service
-        self.toggle_service_item = Gtk.MenuItem(label="Restart Watcher Service")
+        self.toggle_service_item = Gtk.MenuItem(label="🔄 Restart Watcher Service")
         self.toggle_service_item.connect("activate", self.on_restart_service)
         self.menu.append(self.toggle_service_item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
         # Action: Quit
-        self.quit_item = Gtk.MenuItem(label="Quit Tray Icon")
+        self.quit_item = Gtk.MenuItem(label="❌ Quit Tray Icon")
         self.quit_item.connect("activate", self.on_quit)
         self.menu.append(self.quit_item)
 
         self.menu.show_all()
-        self.indicator.set_menu(self.menu)
 
-        # Initial check and periodic polling every 2 seconds
+        if USE_XAPP:
+            self.icon = XApp.StatusIcon.new()
+            self.icon.set_name("rgb-sleep")
+            self.icon.set_icon_name(ICON_ACTIVE)
+            self.icon.set_tooltip_text("RGB Sleep Watcher: Active")
+            self.icon.set_primary_menu(self.menu)
+            self.icon.set_secondary_menu(self.menu)
+            self.icon.set_visible(True)
+        else:
+            self.indicator = AyatanaAppIndicator3.Indicator.new(
+                "rgb-sleep-indicator",
+                ICON_ACTIVE,
+                AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS,
+            )
+            self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
+            self.indicator.set_title("RGB Sleep")
+            self.indicator.set_menu(self.menu)
+
         self.update_status()
         GLib.timeout_add_seconds(2, self.update_status)
 
     def update_status(self):
         active = is_service_active()
-        if active:
-            self.indicator.set_icon_full(ICON_ACTIVE, "RGB Sleep Watcher Active")
-            self.status_item.set_label("🟢 Watcher: Active")
+        status_label = "🟢 Watcher: Active" if active else "🔴 Watcher: Inactive"
+        icon_name = ICON_ACTIVE if active else ICON_INACTIVE
+        tooltip = "RGB Sleep: Active" if active else "RGB Sleep: Inactive"
+
+        self.status_item.set_label(status_label)
+
+        if USE_XAPP:
+            self.icon.set_icon_name(icon_name)
+            self.icon.set_tooltip_text(tooltip)
         else:
-            self.indicator.set_icon_full(ICON_INACTIVE, "RGB Sleep Watcher Stopped")
-            self.status_item.set_label("🔴 Watcher: Inactive")
+            self.indicator.set_icon_full(icon_name, tooltip)
         return True
 
     def on_lights_off(self, _widget):
