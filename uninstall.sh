@@ -15,7 +15,7 @@ fi
 
 # 2. Stop and remove the service
 sudo systemctl disable --now wake-watch.service 2>/dev/null || true
-sudo rm -f /etc/systemd/system/wake-watch.service
+sudo rm -f /etc/systemd/system/wake-watch.service /etc/sudoers.d/rgb-sleep
 sudo systemctl daemon-reload
 sudo systemctl reset-failed wake-watch.service 2>/dev/null || true
 

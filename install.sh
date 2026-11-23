@@ -21,6 +21,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now wake-watch.service
 sudo systemctl restart wake-watch.service
 
+# Allow running lights.sh without sudo password
+TARGET_USER="${SUDO_USER:-$USER}"
+echo "$TARGET_USER ALL=(ALL) NOPASSWD: $DIR/lights.sh, /bin/systemctl restart wake-watch.service, /usr/bin/systemctl restart wake-watch.service" | sudo tee /etc/sudoers.d/rgb-sleep >/dev/null
+sudo chmod 0440 /etc/sudoers.d/rgb-sleep
+
 mkdir -p "$HOME/.config/autostart"
 cp "$DIR/rgb-sleep-tray.desktop" "$HOME/.config/autostart/rgb-sleep-tray.desktop" 2>/dev/null || true
 

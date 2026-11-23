@@ -43,16 +43,16 @@ def is_service_active():
 
 
 def run_command_privileged(cmd):
-    """Runs a command, using pkexec if sudo would prompt for a password."""
+    """Runs a command with sudo, falling back to pkexec if password is required."""
     try:
         if os.geteuid() == 0:
             full_cmd = cmd
         else:
-            test_sudo = subprocess.run(["sudo", "-n", "true"], capture_output=True)
+            # Try running with sudo -n (succeeds silently if NOPASSWD sudoers rule exists)
+            test_sudo = subprocess.run(["sudo", "-n"] + cmd, capture_output=True)
             if test_sudo.returncode == 0:
-                full_cmd = ["sudo"] + cmd
-            else:
-                full_cmd = ["pkexec"] + cmd
+                return  # Command executed successfully without password
+            full_cmd = ["pkexec"] + cmd
         subprocess.Popen(full_cmd)
     except Exception as e:
         subprocess.run(["notify-send", "RGB Sleep Error", str(e)])
