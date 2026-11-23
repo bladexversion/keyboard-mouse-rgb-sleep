@@ -6,14 +6,15 @@ lights come back on.
 
 ## Setup
 1. `lsusb` and find your keyboard/mouse IDs (`vendor:product`).
-2. `cp devices.conf.example devices.conf` and edit it.
-3. `./install.sh` (creates a venv and a systemd service that runs the watcher).
+2. `cp devices.conf.example devices.conf` and edit it (defaults already matchSemico keyboard & Fantech mouse).
+3. `./install.py` (or `./install.sh`): Sets up background watcher, taskbar tray icon, and passwordless execution.
 
 ## Use
-- `./lights.sh off`: lights off
-- `./lights.sh on`: lights on
-- `./tray.py`: run the system tray indicator in your taskbar
-- Check the watcher: `journalctl -u wake-watch -n 20`
+- `./lights.sh off`: Turn off RGB lights immediately
+- `./lights.sh on`: Turn on RGB lights
+- `./lights.sh status`: View live power status of devices, watcher daemon, and tray icon
+- `./lights.sh tray`: Launch or restart the taskbar tray indicator
+- Check the watcher logs: `journalctl -u wake-watch -n 20`
 
 ## Uninstall
 `./uninstall.sh` restores the devices to normal power mode, removes the systemd
