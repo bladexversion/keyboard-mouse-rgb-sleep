@@ -1,0 +1,13 @@
+[Unit]
+Description=RGB Sleep Daemon (D-Bus)
+After=network.target
+
+[Service]
+ExecStart=rgb-sleep-daemon
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

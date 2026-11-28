@@ -1,0 +1,4 @@
+[console_scripts]
+rgb-sleep = rgb_sleep.cli:main
+rgb-sleep-daemon = rgb_sleep.daemon:main
+rgb-sleep-tray = rgb_sleep.tray:main

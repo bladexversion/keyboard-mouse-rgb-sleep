@@ -2,7 +2,7 @@
 Type=Application
 Name=RGB Sleep Tray
 Comment=Taskbar indicator and control for RGB Sleep
-Exec=/home/aravsun/Desktop/rgb-sleep-V2/tray.py
+Exec=rgb-sleep-tray
 Icon=input-keyboard-symbolic
 Terminal=false
 Categories=Utility;Settings;

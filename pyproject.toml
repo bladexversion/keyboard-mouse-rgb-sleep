@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rgb-sleep"
+version = "2.0.0"
+description = "Turn off keyboard/mouse RGB on Linux without suspending the PC"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Arav Sun"}]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Desktop Environment",
+    "Topic :: System :: Hardware",
+]
+requires-python = ">=3.8"
+dependencies = []
+
+[project.scripts]
+rgb-sleep = "rgb_sleep.cli:main"
+rgb-sleep-tray = "rgb_sleep.tray:main"
+rgb-sleep-daemon = "rgb_sleep.daemon:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["rgb_sleep*"]
+
+[tool.setuptools.data-files]
+"/etc/rgb-sleep" = ["devices.conf.example"]
+"/etc/dbus-1/system.d" = ["org.rgb_sleep.Control.conf"]
+"/etc/systemd/system" = ["rgb-sleep-daemon.service"]
+"/usr/share/applications" = ["rgb-sleep-tray.desktop"]

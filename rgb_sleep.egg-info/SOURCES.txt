@@ -1,0 +1,15 @@
+README.md
+devices.conf.example
+org.rgb_sleep.Control.conf
+pyproject.toml
+rgb-sleep-daemon.service
+rgb-sleep-tray.desktop
+rgb_sleep/__init__.py
+rgb_sleep/cli.py
+rgb_sleep/daemon.py
+rgb_sleep/tray.py
+rgb_sleep.egg-info/PKG-INFO
+rgb_sleep.egg-info/SOURCES.txt
+rgb_sleep.egg-info/dependency_links.txt
+rgb_sleep.egg-info/entry_points.txt
+rgb_sleep.egg-info/top_level.txt

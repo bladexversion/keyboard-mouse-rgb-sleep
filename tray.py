@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""System tray indicator for rgb-sleep."""
+"""System tray indicator for rgb-sleep (D-Bus client)."""
 import os
 import signal
-import subprocess
 import sys
 
-# Detach from terminal and ignore SIGHUP
 try:
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
 except Exception:
@@ -16,40 +14,25 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
 from gi.repository import AyatanaAppIndicator3, GLib, Gtk
 
-DIR = os.path.dirname(os.path.realpath(__file__))
-LIGHTS = os.path.join(DIR, "lights.sh")
-SERVICE_NAME = "wake-watch.service"
+import dbus
+import dbus.mainloop.glib
+
+DBUS_NAME = "org.rgb_sleep.Control"
+DBUS_PATH = "/org/rgb_sleep/Control"
+
+dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
 ICON_ACTIVE = "input-keyboard-symbolic"
 ICON_INACTIVE = "dialog-information-symbolic"
 
 
-def is_service_active():
+def get_dbus_proxy():
     try:
-        res = subprocess.run(
-            ["systemctl", "is-active", SERVICE_NAME],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        return res.stdout.strip() == "active"
+        bus = dbus.SystemBus()
+        obj = bus.get_object(DBUS_NAME, DBUS_PATH)
+        return dbus.Interface(obj, DBUS_NAME)
     except Exception:
-        return False
-
-
-def run_command_privileged(cmd):
-    """Runs a command with sudo, falling back to pkexec if password is required."""
-    try:
-        if os.geteuid() == 0:
-            full_cmd = cmd
-        else:
-            test_sudo = subprocess.run(["sudo", "-n"] + cmd, capture_output=True)
-            if test_sudo.returncode == 0:
-                return
-            full_cmd = ["pkexec"] + cmd
-        subprocess.Popen(full_cmd)
-    except Exception as e:
-        subprocess.run(["notify-send", "RGB Sleep Error", str(e)])
+        return None
 
 
 class RgbSleepTray:
@@ -64,74 +47,74 @@ class RgbSleepTray:
 
         self.menu = Gtk.Menu()
 
-        # Status Header (non-clickable indicator)
-        self.status_item = Gtk.MenuItem(label="Checking status...")
+        self.status_item = Gtk.MenuItem(label="Connecting to daemon...")
         self.status_item.set_sensitive(False)
         self.menu.append(self.status_item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
-        # Action: Lights Off
         self.off_item = Gtk.MenuItem(label="💡 Turn Lights Off")
         self.off_item.connect("activate", self.on_lights_off)
         self.menu.append(self.off_item)
 
-        # Action: Lights On
         self.on_item = Gtk.MenuItem(label="💡 Turn Lights On")
         self.on_item.connect("activate", self.on_lights_on)
         self.menu.append(self.on_item)
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
-        # Action: Toggle Watcher Service
-        self.toggle_service_item = Gtk.MenuItem(label="🔄 Restart Watcher Service")
-        self.toggle_service_item.connect("activate", self.on_restart_service)
-        self.menu.append(self.toggle_service_item)
-
-        self.menu.append(Gtk.SeparatorMenuItem())
-
-        # Action: Quit
-        self.quit_item = Gtk.MenuItem(label="❌ Quit Tray Icon")
+        self.quit_item = Gtk.MenuItem(label="❌ Exit")
         self.quit_item.connect("activate", self.on_quit)
         self.menu.append(self.quit_item)
 
         self.menu.show_all()
         self.indicator.set_menu(self.menu)
 
-        self.update_status()
+        self.proxy = None
+        self.connect_dbus()
         GLib.timeout_add_seconds(2, self.update_status)
 
-    def update_status(self):
-        active = is_service_active()
-        if active:
-            self.indicator.set_icon_full(ICON_ACTIVE, "RGB Sleep Watcher Active")
-            self.status_item.set_label("🟢 Watcher: Active")
+    def connect_dbus(self):
+        self.proxy = get_dbus_proxy()
+        if self.proxy:
+            self.status_item.set_label("🟢 Daemon connected")
         else:
-            self.indicator.set_icon_full(ICON_INACTIVE, "RGB Sleep Watcher Stopped")
-            self.status_item.set_label("🔴 Watcher: Inactive")
+            self.status_item.set_label("🔴 Daemon not running")
+        return True
+
+    def update_status(self):
+        if not self.proxy:
+            self.connect_dbus()
         return True
 
     def on_lights_off(self, _widget):
-        run_command_privileged([LIGHTS, "off"])
+        if self.proxy:
+            try:
+                self.proxy.LightsOff()
+                self.status_item.set_label("🟢 Lights OFF")
+            except Exception as e:
+                self.status_item.set_label(f"🔴 Error: {e}")
 
     def on_lights_on(self, _widget):
-        run_command_privileged([LIGHTS, "on"])
-
-    def on_restart_service(self, _widget):
-        run_command_privileged(["systemctl", "restart", SERVICE_NAME])
-        GLib.timeout_add_seconds(1, self.update_status)
+        if self.proxy:
+            try:
+                self.proxy.LightsOn()
+                self.status_item.set_label("🟢 Lights ON")
+            except Exception as e:
+                self.status_item.set_label(f"🔴 Error: {e}")
 
     def on_quit(self, _widget):
+        if self.proxy:
+            try:
+                self.proxy.LightsOn()
+            except Exception:
+                pass
         Gtk.main_quit()
 
 
-_app_instance = None
-
-
 def main():
-    global _app_instance
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-    _app_instance = RgbSleepTray()
+    RgbSleepTray()
     Gtk.main()
 
 
