@@ -90,8 +90,8 @@ class RgbSleepTray:
 
         self.menu.append(Gtk.SeparatorMenuItem())
 
-        # Action: Quit
-        self.quit_item = Gtk.MenuItem(label="❌ Quit Tray Icon")
+        # Action: Exit (stops watcher daemon + tray)
+        self.quit_item = Gtk.MenuItem(label="❌ Exit")
         self.quit_item.connect("activate", self.on_quit)
         self.menu.append(self.quit_item)
 
@@ -122,6 +122,8 @@ class RgbSleepTray:
         GLib.timeout_add_seconds(1, self.update_status)
 
     def on_quit(self, _widget):
+        run_command_privileged([LIGHTS, "on"])
+        run_command_privileged(["systemctl", "stop", SERVICE_NAME])
         Gtk.main_quit()
 
 
